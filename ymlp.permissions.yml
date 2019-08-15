@@ -1,0 +1,19 @@
+add ymlp subscribers:
+  title: 'Create new Ymlp subscribers'
+
+administer ymlp subscribers:
+  title: 'Administer Ymlp subscribers'
+  description: 'Allow to access the administration form to configure Ymlp subscribers.'
+  restrict access: true
+
+delete ymlp subscribers:
+  title: 'Delete Ymlp subscribers'
+
+edit ymlp subscribers:
+  title: 'Edit Ymlp subscribers'
+
+view published ymlp subscribers:
+  title: 'View published Ymlp subscribers'
+
+view unpublished ymlp subscribers:
+  title: 'View unpublished Ymlp subscribers'

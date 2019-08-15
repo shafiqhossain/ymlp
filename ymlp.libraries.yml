@@ -1,0 +1,11 @@
+ymlp_style:
+  version: VERSION
+  css:
+    theme:
+      css/ymlp.css: {}
+  js:
+    js/ymlp.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal.ajax
+    - core/drupal

@@ -1,0 +1,346 @@
+<?php
+
+/**
+ * @file
+ * Contains ymlp.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\node\NodeInterface;
+use Drupal\user\UserInterface;
+use Drupal\node\NodeTypeInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldItemList;
+
+$path = drupal_get_path('module', 'ymlp');
+
+//include the Ymlp class
+include $path . '/lib/Ymlp.Api.php';
+
+/**
+ * Implements hook_help().
+ */
+function ymlp_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the ymlp module.
+    case 'help.page.ymlp':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Ymlp email service integration') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_theme()
+ */
+function ymlp_theme() {
+  $themes['ymlp_subscription_form'] = [
+	'render element' => 'form',
+	'template' => 'ymlp_subscription_form'
+  ];
+
+  return $themes;
+}
+
+/**
+* Implements hook_mail().
+*/
+function ymlp_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'subscribe':
+      $message['from'] = $params['from'];
+      $message['subject'] = $params['subject'];
+      $message['body'][] = $params['body'];
+      break;
+    case 'unsubscribe':
+      $message['from'] = $params['from'];
+      $message['subject'] = $params['subject'];
+      $message['body'][] = $params['body'];
+      break;
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function ymlp_form_node_type_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+  /** @var \Drupal\node\NodeTypeInterface $type */
+  $type = $form_state->getFormObject()->getEntity();
+
+  $form['ymlp'] = [
+    '#type' => 'details',
+    '#title' => t('Ymlp settings'),
+    '#collapsible' => TRUE,
+    '#open' => TRUE,
+    '#group' => 'additional_settings',
+    '#weight' => 20,
+  ];
+
+  $form['ymlp']['ymlp_node_subscribe'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Subscribe to Ymlp for all Email type fields when nodes are created or updated.'),
+    '#default_value' => $type->getThirdPartySetting('ymlp', 'ymlp_node_subscribe', 0),
+    '#return_value' => 1,
+  );
+
+  $form['ymlp']['ymlp_node_unsubscribe'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Cancel Ymlp subscription for all Email type fields when node is deleted.'),
+    '#default_value' => $type->getThirdPartySetting('ymlp', 'ymlp_node_unsubscribe', 0),
+    '#return_value' => 1,
+  );
+
+  $form['#entity_builders'][] = 'ymlp_form_node_type_form_builder';
+}
+
+/**
+ * Entity builder for the node type form with options.
+ *
+ * @see ymlp_form_node_type_form_alter()
+ */
+function ymlp_form_node_type_form_builder($entity_type, NodeTypeInterface $type, &$form, FormStateInterface $form_state) {
+  $type->setThirdPartySetting('ymlp', 'ymlp_node_subscribe', $form_state->getValue('ymlp_node_subscribe') );
+  $type->setThirdPartySetting('ymlp', 'ymlp_node_unsubscribe', $form_state->getValue('ymlp_node_unsubscribe') );
+}
+
+/**
+* Implements hook_form_alter().
+*/
+function ymlp_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id){
+  if($form_id == "user_admin_settings"){
+    $config = \Drupal::config('user.settings');
+
+    $form['ymlp'] = [
+      '#type' => 'details',
+      '#title' => t('Ymlp settings'),
+      '#collapsible' => TRUE,
+      '#open' => TRUE,
+      '#weight' => 50,
+    ];
+
+    $form['ymlp']['ymlp_user_subscribe'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Subscribe to Ymlp where users are created or updated.'),
+      '#default_value' => $config->get('ymlp_user_subscribe'),
+      '#return_value' => 1,
+    );
+
+    $form['ymlp']['ymlp_user_unsubscribe'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Cancel Ymlp subscription when users are deleted.'),
+      '#default_value' => $config->get('ymlp_user_subscribe'),
+      '#return_value' => 1,
+    );
+
+    $form['#submit'][] = 'ymlp_user_admin_settings_submit';
+  }
+  
+}
+
+/**
+ * Entity builder for the user form with options.
+ *
+ * @see ymlp_form_alter()
+ */
+function ymlp_user_admin_settings_submit(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
+  $config = \Drupal::service('config.factory')->getEditable('user.settings');
+
+  $config->set('ymlp_user_subscribe', $form_state->getValue('ymlp_user_subscribe'))
+  	->set('ymlp_user_unsubscribe', $form_state->getValue('ymlp_user_unsubscribe'))
+    ->save();
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert() for node entities.
+ *
+ * This subscribe a node email to Ymlp on node insert.
+ */
+function ymlp_node_insert(NodeInterface $node) {
+  $node_type = \Drupal\node\Entity\NodeType::load($node->bundle());
+  $ymlp_node_subscribe = $node_type->getThirdPartySetting('ymlp', 'ymlp_node_subscribe', 0);
+
+  if ($ymlp_node_subscribe) {
+    //submit to Ymlp
+    $ymlp = \Drupal::service('ymlp.helper');
+
+    //ymlp settings
+    $ymlpConfig = \Drupal::config('ymlp.settings');
+    $group_ids = $ymlpConfig->get('group_id');
+
+    foreach (\Drupal::service('entity_field.manager')->getFieldDefinitions('node', $node->bundle()) as $field_name => $field_definition) {
+	  if (!empty($field_definition->getTargetBundle())) {
+		$field_type = $field_definition->getType();
+
+	    if($field_type == 'email') {
+		  $field_value = ($node->hasField($field_name) ? $node->get($field_name)->value : '');
+		  
+		  if(!empty($field_value)) {
+		    $response = $ymlp->subscribe($field_value, '', '', 0, $group_ids);
+		    if ($response['status'] == 1) {
+			  \Drupal::logger('ymlp')->info(t('Email %email subscription was successful.', ['%email' => $field_value]));
+		    }
+		    else {
+		      \Drupal::logger('ymlp')->error(t('Email %email subscription failed due to %error.', ['%email' => $field_value, '%error' => $response['message']]));
+		    }
+		  }
+	    }
+	  }
+	}
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for node entities.
+ *
+ * This subscribe a node email to Ymlp on node update.
+ */
+function ymlp_node_update(NodeInterface $node) {
+  $node_type = \Drupal\node\Entity\NodeType::load($node->bundle());
+  $ymlp_node_subscribe = $node_type->getThirdPartySetting('ymlp', 'ymlp_node_subscribe', 0);
+
+  if ($ymlp_node_subscribe) {
+    //submit to Ymlp
+    $ymlp = \Drupal::service('ymlp.helper');
+
+    //ymlp settings
+    $ymlpConfig = \Drupal::config('ymlp.settings');
+    $group_ids = $ymlpConfig->get('group_id');
+
+    foreach (\Drupal::service('entity_field.manager')->getFieldDefinitions('node', $node->bundle()) as $field_name => $field_definition) {
+	  if (!empty($field_definition->getTargetBundle())) {
+		$field_type = $field_definition->getType();
+
+	    if($field_type == 'email') {
+		  $field_value = ($node->hasField($field_name) ? $node->get($field_name)->value : '');
+		  
+		  if(!empty($field_value)) {
+		    $response = $ymlp->subscribe($field_value, '', '', 0, $group_ids);
+		    if ($response['status'] == 1) {
+			  \Drupal::logger('ymlp')->info(t('Email %email subscription was successful.', ['%email' => $field_value]));
+		    }
+		    else {
+		      \Drupal::logger('ymlp')->error(t('Email %email subscription failed due to %error.', ['%email' => $field_value, '%error' => $response['message']]));
+		    }
+		  }
+	    }
+	  }
+	}
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for node entities.
+ *
+ * This unsubscribe a node email from Ymlp on node delete.
+ */
+function ymlp_node_delete(NodeInterface $node) {
+  $node_type = \Drupal\node\Entity\NodeType::load($node->bundle());
+  $ymlp_node_unsubscribe = $node_type->getThirdPartySetting('ymlp', 'ymlp_node_unsubscribe', 0);
+
+  if ($ymlp_node_unsubscribe) {
+    //submit to Ymlp
+    $ymlp = \Drupal::service('ymlp.helper');
+
+    foreach (\Drupal::service('entity_field.manager')->getFieldDefinitions('node', $node->bundle()) as $field_name => $field_definition) {
+	  if (!empty($field_definition->getTargetBundle())) {
+		$field_type = $field_definition->getType();
+
+	    if($field_type == 'email') {
+		  $field_value = ($node->hasField($field_name) ? $node->get($field_name)->value : '');
+		  
+		  if(!empty($field_value)) {
+		    $response = $ymlp->unsubscribe($field_value);
+		    if ($response['status'] == 1) {
+			  \Drupal::logger('ymlp')->info(t('Email %email subscription cancel was successful.', ['%email' => $field_value]));
+		    }
+		    else {
+			  \Drupal::logger('ymlp')->error(t('Email %email subscription cancel failed due to %error.', ['%email' => $field_value, '%error' => $response['message']]));
+		    }
+		  }
+	    }
+	  }
+	}
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert() for user entities.
+ *
+ * This subscribes a user with Ymlp on user insert.
+ */
+function ymlp_user_insert(UserInterface $user) {
+  $config = \Drupal::config('user.settings');
+  $ymlp_user_subscribe = $config->get('ymlp_user_subscribe');
+
+  if($ymlp_user_subscribe) {
+    //ymlp settings
+    $ymlpConfig = \Drupal::config('ymlp.settings');
+    $group_ids = $ymlpConfig->get('group_id');
+
+    //submit to Ymlp
+    $ymlp = \Drupal::service('ymlp.helper');
+
+	$response = $ymlp->subscribe($user->getEmail(), '', '', 0, $group_ids);
+	if ($response['status'] == 1) {
+	  \Drupal::logger('ymlp')->info(t('Email %email subscription was successful.', ['%email' => $user->getEmail()]));
+	}
+	else {
+	  \Drupal::logger('ymlp')->error(t('Email %email subscription failed due to %error.', ['%email' => $user->getEmail(), '%error' => $response['message']]));
+	}
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for user entities.
+ *
+ * This subscribes a user with Ymlp on user update.
+ */
+function ymlp_user_update(UserInterface $user) {
+  $config = \Drupal::config('user.settings');
+  $ymlp_user_subscribe = $config->get('ymlp_user_subscribe');
+
+  if($ymlp_user_subscribe) {
+    //ymlp settings
+    $ymlpConfig = \Drupal::config('ymlp.settings');
+    $group_ids = $ymlpConfig->get('group_id');
+
+    //submit to Ymlp
+    $ymlp = \Drupal::service('ymlp.helper');
+
+	$response = $ymlp->subscribe($user->getEmail(), '', '', 0, $group_ids);
+	if ($response['status'] == 1) {
+	  \Drupal::logger('ymlp')->info(t('Email %email subscription was successful.', ['%email' => $user->getEmail()]));
+	}
+	else {
+	  \Drupal::logger('ymlp')->error(t('Email %email subscription failed due to %error.', ['%email' => $user->getEmail(), '%error' => $response['message']]));
+	}
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for user entities.
+ *
+ * This unsubscribes a user from Ymlp on user deleted.
+ */
+function ymlp_user_delete(UserInterface $user) {
+  $config = \Drupal::config('user.settings');
+  $ymlp_user_unsubscribe = $config->get('ymlp_user_unsubscribe');
+
+  if($ymlp_user_unsubscribe) {
+    //submit to Ymlp
+    $ymlp = \Drupal::service('ymlp.helper');
+
+	$response = $ymlp->unsubscribe($user->getEmail());
+	if ($response['status'] == 1) {
+	  \Drupal::logger('ymlp')->info(t('Email %email subscription cancel was successful.', ['%email' => $user->getEmail()]));
+	}
+	else {
+	  \Drupal::logger('ymlp')->error(t('Email %email subscription cancel failed due to %error.', ['%email' => $user->getEmail(), '%error' => $response['message']]));
+	}
+  }
+}

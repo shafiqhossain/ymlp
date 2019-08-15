@@ -1,0 +1,31 @@
+# Ymlp menu
+ymlp.menu.top:
+  route_name: ymlp.route.settings
+  title: 'Ymlp'
+  description: 'Ymlp menus.'
+  parent: system.admin_config_services
+  weight: 100
+
+# Ymlp General settings
+ymlp.menu.settings:
+  route_name: ymlp.route.settings
+  title: 'General settings'
+  description: 'General Settings.'
+  parent: ymlp.menu.top
+  weight: 100
+
+# Ymlp subscribers list
+entity.ymlp_subscriber.collection:
+  title: 'Subscribers list'
+  route_name: entity.ymlp_subscriber.collection
+  description: 'List Ymlp subscriber entities'
+  parent: ymlp.menu.top
+  weight: 120
+
+# Ymlp subscriber field items definition
+ymlp_subscriber.structure.settings:
+  title: 'Subscriber settings'
+  description: 'Configure Ymlp subscriber entities'
+  route_name: ymlp_subscriber.settings
+  parent: ymlp.menu.top
+  weight: 140

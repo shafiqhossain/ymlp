@@ -1,0 +1,19 @@
+services:
+  ymlp.helper:
+    class: Drupal\ymlp\Services\YmlpHelper
+    arguments: ['@entity.query', '@entity.manager', '@plugin.manager.mail', '@logger.factory', '@config.factory', '@current_user']
+    tags:
+      - { name: ymlp_helper, priority: 1000 }
+
+  ymlp.subscription_form:
+    class: '\Drupal\ymlp\Form\YmlpSubscriptionForm'
+    arguments: ['@entity_type.manager', '@current_user', '@email.validator', '@config.factory']
+    tags:
+      - { name: ymlp_subscription_form }
+
+  # Subscriber to the event of ymlp subscribe and unsubscribe
+  ymlp.event_subscriber:
+    class: '\Drupal\ymlp\EventSubscriber\YmlpEventsSubscriber'
+    arguments: ['@entity.query', '@entity.manager', '@plugin.manager.mail', '@logger.factory']
+    tags:
+      - { name: 'event_subscriber' }

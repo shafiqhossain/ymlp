@@ -1,0 +1,22 @@
+{#
+/**
+ * @file ymlp_subscriber.html.twig
+ * Default theme implementation to present Ymlp subscriber data.
+ *
+ * This template is used when viewing Ymlp subscriber pages.
+ *
+ *
+ * Available variables:
+ * - content: A list of content items. Use 'content' to print all content, or
+ * - attributes: HTML attributes for the container element.
+ *
+ * @see template_preprocess_ymlp_subscriber()
+ *
+ * @ingroup themeable
+ */
+#}
+<div{{ attributes.addClass('ymlp_subscriber') }}>
+  {% if content %}
+    {{- content -}}
+  {% endif %}
+</div>

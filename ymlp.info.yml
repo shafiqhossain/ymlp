@@ -1,0 +1,5 @@
+name: 'Ymlp'
+type: module
+description: 'Ymlp email service integration'
+core: 8.x
+package: 'Ymlp'

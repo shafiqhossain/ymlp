@@ -1,0 +1,22 @@
+# Ymlp subscriber routing definition
+ymlp_subscriber.settings_tab:
+  route_name: ymlp_subscriber.settings
+  title: 'Settings'
+  base_route: ymlp_subscriber.settings
+
+entity.ymlp_subscriber.canonical:
+  route_name: entity.ymlp_subscriber.canonical
+  base_route: entity.ymlp_subscriber.canonical
+  title: 'View'
+
+entity.ymlp_subscriber.edit_form:
+  route_name: entity.ymlp_subscriber.edit_form
+  base_route: entity.ymlp_subscriber.canonical
+  title: 'Edit'
+
+entity.ymlp_subscriber.delete_form:
+  route_name:  entity.ymlp_subscriber.delete_form
+  base_route:  entity.ymlp_subscriber.canonical
+  title: Delete
+  weight: 10
+

@@ -1,0 +1,31 @@
+ymlp.settings:
+  type: config_object
+  label: 'Ymlp settings'
+  mapping:
+    api_key:
+      type: string
+      label: 'Api Key'
+    api_username:
+      type: string
+      label: 'Api Username'
+    group_id:
+      type: string
+      label: 'Email Group'
+    show_first_name:
+      type: string
+      label: 'First Name'
+    show_last_name:
+      type: string
+      label: 'Last Name'
+    ymlp_subscribe_mail_subject:
+      type: string
+      label: 'Subscribe email subject'
+    ymlp_subscribe_mail_body:
+      type: string
+      label: 'Subscribe email body'
+    ymlp_unsubscribe_mail_subject:
+      type: string
+      label: 'Unsubscribe email subject'
+    ymlp_unsubscribe_mail_body:
+      type: string
+      label: 'Unsubscribe email body'

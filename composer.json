@@ -1,0 +1,14 @@
+{
+  "name": "drupal/ymlp",
+  "type": "drupal-module",
+  "description": "Ymlp email service integration",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "homepage": "https://www.drupal.org/project/ymlp",
+  "minimum-stability": "dev",
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/ymlp",
+    "source": "http://cgit.drupalcode.org/ymlp"
+  },
+  "require": { }
+}

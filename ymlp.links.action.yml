@@ -1,0 +1,5 @@
+entity.ymlp_subscriber.add_form:
+  route_name: entity.ymlp_subscriber.add_form
+  title: 'Add Ymlp subscriber'
+  appears_on:
+    - entity.ymlp_subscriber.collection

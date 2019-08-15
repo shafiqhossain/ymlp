@@ -1,0 +1,9 @@
+api_key: ''
+api_username: ''
+group_id: ''
+show_first_name: '0'
+show_last_name: '0'
+ymlp_subscribe_mail_subject: "Confirmation for your subscription with Ymlp"
+ymlp_subscribe_mail_body: "Thank you for your submission. You have been subscribed with Ymlp successfully!\n\n --Team"
+ymlp_unsubscribe_mail_subject: "Confirmation for un-subscription from Ymlp"
+ymlp_unsubscribe_mail_body: "Thank you for your submission. You have been un-subscribed from Ymlp successfully!\n\n --Team"
